@@ -1,0 +1,670 @@
+#-----
+#Histogram and box plot
+#-----
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+df = pd.read_excel("California.xlsx")
+
+print("First few rows:")
+print(df.head())
+print(df.shape)
+
+# Histogram
+def hist_plot(df):
+    df.hist(bins=20, figsize=(15,10),
+            color='skyblue', edgecolor='black')
+    plt.suptitle("Histograms for Numerical Features")
+    plt.show()
+
+# Boxplot
+def box_plot(df):
+    cols = df.select_dtypes(include=np.number).columns
+
+    for c in cols:
+        plt.figure(figsize=(10,5))
+        sns.boxplot(x=df[c], color='lightgreen')
+        plt.title(f"Box Plot of {c}")
+        plt.show()
+
+# Outlier analysis
+def outliers(df):
+    cols = df.select_dtypes(include=np.number).columns
+
+    for c in cols:
+        q1 = df[c].quantile(0.25)
+        q3 = df[c].quantile(0.75)
+
+        iqr = q3 - q1
+
+        low = q1 - 1.5 * iqr
+        high = q3 + 1.5 * iqr
+
+        out = df[(df[c] < low) | (df[c] > high)]
+
+        print(f"Feature: {c}")
+        print("Number of Outliers:", len(out))
+        print("Outlier Values:\n", out[c].values, "\n")
+
+print("\n--- Histograms ---")
+hist_plot(df)
+
+print("\n--- Boxplots ---")
+box_plot(df)
+
+print("\n--- Outliers ---")
+outliers(df)
+
+#-----
+# Heatmap and pairplot
+#-----
+
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load dataset
+df = pd.read_csv("California Housing.csv")
+
+# Keep only numeric columns
+df = df.select_dtypes(include='number')
+
+# Correlation matrix
+corr = df.corr()
+
+# Heatmap
+plt.figure(figsize=(10,8))
+sns.heatmap(corr, annot=True,
+            cmap='coolwarm',
+            fmt='.2f',
+            linewidths=0.5)
+
+plt.title("Correlation Matrix Heatmap")
+plt.show()
+
+# Pair plot
+sns.pairplot(df)
+
+plt.suptitle("Pairwise Relationships Between Features", y=1.02)
+plt.show()
+
+#-----
+# PCA
+#-----
+
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+
+# Load dataset
+df = pd.read_csv("iris_data.csv")
+
+# Select features
+x = df[['sepal length (cm)',
+        'sepal width (cm)',
+        'petal length (cm)',
+        'petal width (cm)']]
+
+# Standardize data
+x = StandardScaler().fit_transform(x)
+
+# Covariance matrix
+cov = np.cov(x.T)
+print("Covariance Matrix:\n", cov)
+
+# Eigen values and vectors
+eig_val, eig_vec = np.linalg.eig(cov)
+
+print("Eigenvalues:\n", eig_val)
+print("Eigenvectors:\n", eig_vec)
+
+# PCA
+pca = PCA(n_components=2)
+pc = pca.fit_transform(x)
+
+# New dataframe
+df_pca = pd.DataFrame(pc, columns=['PC1', 'PC2'])
+df_pca['Species'] = df['Species']
+
+# Scatter plot
+plt.figure(figsize=(8,6))
+
+sns.scatterplot(x='PC1', y='PC2',
+                hue='Species',
+                data=df_pca,
+                palette='Set1',
+                s=100)
+
+plt.title("PCA of Iris Dataset")
+plt.xlabel("Principal Component 1")
+plt.ylabel("Principal Component 2")
+plt.show()
+
+#-----
+# Find_S
+#-----
+
+import pandas as pd
+
+def find_s(file):
+
+    # Load dataset
+    df = pd.read_csv(file)
+
+    print("Columns:", df.columns)
+
+    # Positive examples
+    pos = df[df.iloc[:, -1].str.lower() == 'yes']
+
+    if pos.empty:
+        print("No positive examples found")
+        return
+
+    # Initial hypothesis
+    h = pos.iloc[0, :-1].copy()
+
+    # Generalize hypothesis
+    for _, row in pos.iterrows():
+
+        for i in range(len(h)):
+
+            if h[i] != row[i]:
+                h[i] = '?'
+
+    # Final hypothesis
+    print("<" + ", ".join(map(str, h)) + ">")
+
+# Call function
+find_s("tennis.csv")
+
+#-----
+# Naive Bayes
+#-----
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
+
+# Load dataset
+df = pd.read_csv("olivetti_faces.csv")
+
+# Features and labels
+X = df.iloc[:, :-1].values
+y = df.iloc[:, -1].values
+
+# PCA
+pca = PCA(n_components=50)
+X_pca = pca.fit_transform(X)
+
+# Train and test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_pca, y, test_size=0.3, random_state=42
+)
+
+# Naive Bayes model
+nb = GaussianNB()
+nb.fit(X_train, y_train)
+
+# Prediction
+y_pred = nb.predict(X_test)
+
+# Accuracy
+acc = accuracy_score(y_test, y_pred)
+
+print("Accuracy:", round(acc, 2))
+
+# Test samples
+samples = [0, 5, 10]
+
+for i in samples:
+
+    pred = nb.predict([X_test[i]])[0]
+
+    print(f"\nSample {i}")
+    print("Predicted:", pred)
+    print("Actual:", y_test[i])
+
+    # Show image
+    img = X[i].reshape(64,64)
+
+    plt.imshow(img, cmap='gray')
+
+    plt.title(f"True:{y_test[i]}  Pred:{pred}")
+
+    plt.show()
+
+#-----
+# KNN 
+#-----
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import accuracy_score
+
+# Random values
+values = np.random.rand(100)
+
+print("\nValues:")
+print(values)
+
+# Labels
+labels = []
+
+for i in values[:50]:
+
+    if i <= 0.5:
+        labels.append("Class1")
+    else:
+        labels.append("Class2")
+
+labels += [None] * 50
+
+print("\nLabels:")
+print(labels)
+
+# DataFrame
+df = pd.DataFrame({
+    "Point": [f"x{i+1}" for i in range(100)],
+    "Value": values,
+    "Label": labels
+})
+
+print("\nDataFrame:")
+print(df)
+
+# Histogram
+for col in df.select_dtypes(include=['int','float']):
+
+    df[col].hist(figsize=(12,8),
+                  bins=10,
+                  edgecolor='black')
+
+    plt.title(f"Histogram for {col}")
+    plt.xlabel(col)
+    plt.ylabel("Frequency")
+    plt.show()
+
+# Labeled data
+train = df[df["Label"].notna()]
+X_train = train[["Value"]]
+y_train = train["Label"]
+
+# Unlabeled data
+test = df[df["Label"].isna()].copy()
+X_test = test[["Value"]]
+
+# True labels
+true = ["Class1" if i <= 0.5 else "Class2"
+        for i in values[50:]]
+
+# K values
+k_vals = [1,2,3,4,5,20,30]
+
+results = {}
+acc = {}
+
+for k in k_vals:
+
+    knn = KNeighborsClassifier(n_neighbors=k)
+
+    knn.fit(X_train, y_train)
+
+    pred = knn.predict(X_test)
+
+    results[k] = pred
+
+    accuracy = accuracy_score(true, pred) * 100
+    acc[k] = accuracy
+
+    print(f"Accuracy for k={k}: {accuracy:.2f}%")
+
+    test[f"Label_k{k}"] = pred
+
+# Final DataFrame
+df1 = test.drop("Label", axis=1)
+
+print("\nDataFrame without Label:")
+print(df1)
+
+#-----
+# K-Means Clustering
+#-----
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.metrics import accuracy_score, confusion_matrix
+
+# Load dataset
+df = pd.read_csv("breast_cancer_data.csv")
+
+# Features and target
+X = df.drop("target", axis=1)
+y = df["target"]
+
+# Standardize data
+X = StandardScaler().fit_transform(X)
+
+# KMeans
+kmeans = KMeans(n_clusters=2,
+                random_state=42,
+                n_init=10)
+
+kmeans.fit(X)
+
+# Predictions
+y_pred = kmeans.predict(X)
+
+# PCA for visualization
+pca = PCA(n_components=2)
+
+X_pca = pca.fit_transform(X)
+
+centers = pca.transform(kmeans.cluster_centers_)
+
+# Plot clusters
+plt.figure(figsize=(10,6))
+
+plt.scatter(X_pca[:,0], X_pca[:,1],
+            c=y_pred,
+            cmap='viridis',
+            alpha=0.6)
+
+plt.scatter(centers[:,0], centers[:,1],
+            s=200,
+            c='red',
+            marker='X')
+
+plt.title("K-Means Clustering")
+plt.xlabel("PCA 1")
+plt.ylabel("PCA 2")
+
+plt.show()
+
+# Confusion matrix
+cm = confusion_matrix(y, y_pred)
+
+print("Confusion Matrix:\n", cm)
+
+# Adjust labels if needed
+if cm[0,0] + cm[1,1] < cm[0,1] + cm[1,0]:
+    y_pred = 1 - y_pred
+
+# Accuracy
+acc = accuracy_score(y, y_pred)
+
+print("Accuracy:", round(acc, 2))
+
+#-----
+# Locally weighted Regression
+#-----
+
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.linalg import inv
+
+# Generate dataset
+np.random.seed(42)
+
+X = np.linspace(0,1,100)
+y = 2 * X**2 + 0.3 * np.random.randn(100)
+
+X = X[:, np.newaxis]
+
+# LWR function
+def lwr(X_train, y_train, tau, X_test):
+
+    y_pred = np.zeros(len(X_test))
+
+    for i, x in enumerate(X_test):
+
+        # Weights
+        w = np.exp(-np.sum((X_train - x)**2, axis=1)
+                   / (2 * tau**2))
+
+        W = np.diag(w)
+
+        # Theta
+        theta = inv(X_train.T @ W @ X_train) @ \
+                (X_train.T @ W @ y_train)
+
+        # Prediction
+        y_pred[i] = x @ theta
+
+    return y_pred
+
+# Test data
+X_test = np.linspace(0,1,200)[:, np.newaxis]
+
+taus = [0.1, 0.3, 0.5]
+
+# Plot
+plt.figure(figsize=(10,6))
+
+plt.scatter(X, y,
+            color='red',
+            label='Data')
+
+for t in taus:
+
+    pred = lwr(X, y, t, X_test)
+
+    plt.plot(X_test, pred,
+             label=f"Tau = {t}")
+
+plt.title("Locally Weighted Regression")
+plt.xlabel("X")
+plt.ylabel("Y")
+
+plt.legend()
+plt.show()
+
+#-----
+# Polynomial Regression and Linear Regression
+#-----
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import warnings
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
+from sklearn.metrics import mean_squared_error, r2_score
+
+warnings.filterwarnings("ignore")
+
+# -------- Linear Regression --------
+def linear_regression(file):
+
+    df = pd.read_csv(file)
+
+    X = df.iloc[:, :-1]
+    y = df.iloc[:, -1]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    model = LinearRegression()
+
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    print("Linear Regression MSE:", round(mse,2))
+    print("Linear Regression R2:", round(r2,2))
+
+    # Plot
+    plt.figure(figsize=(10,6))
+
+    plt.scatter(y_test, y_pred,
+                color='blue')
+
+    plt.plot([min(y_test), max(y_test)],
+             [min(y_test), max(y_test)],
+             color='red')
+
+    plt.xlabel("Actual")
+    plt.ylabel("Predicted")
+
+    plt.title("Linear Regression")
+
+    plt.show()
+
+
+# -------- Polynomial Regression --------
+def polynomial_regression(file):
+
+    df = pd.read_csv(file)
+
+    df = df.dropna(subset=['mpg'])
+
+    X = df[['horsepower']]
+    y = df['mpg']
+
+    X['horsepower'] = pd.to_numeric(
+        X['horsepower'],
+        errors='coerce'
+    )
+
+    X = X.dropna()
+    y = y.loc[X.index]
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    degree = 4
+
+    poly = PolynomialFeatures(degree)
+
+    X_train_poly = poly.fit_transform(X_train)
+    X_test_poly = poly.transform(X_test)
+
+    model = LinearRegression()
+
+    model.fit(X_train_poly, y_train)
+
+    y_pred = model.predict(X_test_poly)
+
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
+
+    print("\nPolynomial Regression MSE:", round(mse,2))
+    print("Polynomial Regression R2:", round(r2,2))
+
+    # Plot
+    plt.scatter(X['horsepower'], y,
+                color='blue')
+
+    X_range = np.linspace(
+        X['horsepower'].min(),
+        X['horsepower'].max(),
+        100
+    ).reshape(-1,1)
+
+    y_range = model.predict(
+        poly.transform(X_range)
+    )
+
+    plt.plot(X_range, y_range,
+             color='red')
+
+    plt.xlabel("Horsepower")
+    plt.ylabel("MPG")
+
+    plt.title(f"Polynomial Regression Degree {degree}")
+
+    plt.show()
+
+
+# Function calls
+linear_regression("BostonHousing.csv")
+
+polynomial_regression("auto-mpg.csv")
+
+#-----
+# Decision Tree
+#-----
+
+import pandas as pd
+import numpy as np
+
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier, export_text
+from sklearn.metrics import accuracy_score
+
+# Load dataset
+df = pd.read_csv("breast_cancer_data.csv")
+
+# Features and target
+X = df.drop("target", axis=1)
+y = df["target"]
+
+# Split data
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Decision Tree model
+dt = DecisionTreeClassifier(random_state=42)
+
+# Train model
+dt.fit(X_train, y_train)
+
+# Prediction
+y_pred = dt.predict(X_test)
+
+# Accuracy
+acc = accuracy_score(y_test, y_pred)
+
+print("Accuracy:", round(acc,2))
+
+# Tree rules
+print("\nDecision Tree Rules:\n")
+
+rules = export_text(dt,
+                    feature_names=list(X.columns))
+
+print(rules)
+
+# New sample
+sample = np.array([
+    14.6,21.7,94.7,577.6,0.102,
+    0.125,0.078,0.057,0.159,0.06,
+    0.02,0.039,0.029,0.046,0.063,
+    0.07,0.113,0.144,0.24,0.104,
+    0.111,0.051,0.002,0.004,0.002,
+    0.007,0.015,0.014,0.027,0.023
+]).reshape(1,-1)
+
+sample_df = pd.DataFrame(sample,
+                         columns=X.columns)
+
+pred = dt.predict(sample_df)
+
+label = "Malignant" if pred[0] == 1 else "Benign"
+
+print("\nPredicted Class:", label)
