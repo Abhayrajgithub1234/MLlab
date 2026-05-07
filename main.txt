@@ -250,94 +250,57 @@ for i in samples:
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
 
-# Random values
+# Generate data
 values = np.random.rand(100)
 
-print("\nValues:")
-print(values)
+# Labels for first 50 values
+labels = ["Class1" if i <= 0.5 else "Class2"
+          for i in values[:50]]
 
-# Labels
-labels = []
-
-for i in values[:50]:
-
-    if i <= 0.5:
-        labels.append("Class1")
-    else:
-        labels.append("Class2")
-
+# Remaining unlabeled
 labels += [None] * 50
-
-print("\nLabels:")
-print(labels)
 
 # DataFrame
 df = pd.DataFrame({
-    "Point": [f"x{i+1}" for i in range(100)],
     "Value": values,
     "Label": labels
 })
 
-print("\nDataFrame:")
 print(df)
 
-# Histogram
-for col in df.select_dtypes(include=['int','float']):
-
-    df[col].hist(figsize=(12,8),
-                  bins=10,
-                  edgecolor='black')
-
-    plt.title(f"Histogram for {col}")
-    plt.xlabel(col)
-    plt.ylabel("Frequency")
-    plt.show()
-
-# Labeled data
+# Train data
 train = df[df["Label"].notna()]
+
 X_train = train[["Value"]]
 y_train = train["Label"]
 
-# Unlabeled data
-test = df[df["Label"].isna()].copy()
+# Test data
+test = df[df["Label"].isna()]
+
 X_test = test[["Value"]]
 
 # True labels
 true = ["Class1" if i <= 0.5 else "Class2"
         for i in values[50:]]
 
-# K values
-k_vals = [1,2,3,4,5,20,30]
+# KNN
+for k in [1,3,5]:
 
-results = {}
-acc = {}
+    model = KNeighborsClassifier(
+        n_neighbors=k
+    )
 
-for k in k_vals:
+    model.fit(X_train, y_train)
 
-    knn = KNeighborsClassifier(n_neighbors=k)
+    pred = model.predict(X_test)
 
-    knn.fit(X_train, y_train)
+    acc = accuracy_score(true, pred)
 
-    pred = knn.predict(X_test)
-
-    results[k] = pred
-
-    accuracy = accuracy_score(true, pred) * 100
-    acc[k] = accuracy
-
-    print(f"Accuracy for k={k}: {accuracy:.2f}%")
-
-    test[f"Label_k{k}"] = pred
-
-# Final DataFrame
-df1 = test.drop("Label", axis=1)
-
-print("\nDataFrame without Label:")
-print(df1)
+    print(f"\nk = {k}")
+    print("Accuracy:", acc)
 
 #-----
 # K-Means Clustering
@@ -480,130 +443,92 @@ plt.show()
 # Polynomial Regression and Linear Regression
 #-----
 
-import numpy as np
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-import warnings
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.metrics import mean_squared_error, r2_score
 
-warnings.filterwarnings("ignore")
+# ---------- Linear Regression ----------
+df = pd.read_csv("BostonHousing.csv")
 
-# -------- Linear Regression --------
-def linear_regression(file):
+X = df.iloc[:, :-1]
+y = df.iloc[:, -1]
 
-    df = pd.read_csv(file)
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-    X = df.iloc[:, :-1]
-    y = df.iloc[:, -1]
+model = LinearRegression()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+model.fit(X_train, y_train)
 
-    model = LinearRegression()
+y_pred = model.predict(X_test)
 
-    model.fit(X_train, y_train)
+print("Linear MSE:",
+      mean_squared_error(y_test, y_pred))
 
-    y_pred = model.predict(X_test)
+print("Linear R2:",
+      r2_score(y_test, y_pred))
 
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
+# Plot
+plt.scatter(y_test, y_pred)
 
-    print("Linear Regression MSE:", round(mse,2))
-    print("Linear Regression R2:", round(r2,2))
+plt.xlabel("Actual")
+plt.ylabel("Predicted")
 
-    # Plot
-    plt.figure(figsize=(10,6))
+plt.title("Linear Regression")
 
-    plt.scatter(y_test, y_pred,
-                color='blue')
-
-    plt.plot([min(y_test), max(y_test)],
-             [min(y_test), max(y_test)],
-             color='red')
-
-    plt.xlabel("Actual")
-    plt.ylabel("Predicted")
-
-    plt.title("Linear Regression")
-
-    plt.show()
+plt.show()
 
 
-# -------- Polynomial Regression --------
-def polynomial_regression(file):
+# ---------- Polynomial Regression ----------
+df = pd.read_csv("auto-mpg.csv")
 
-    df = pd.read_csv(file)
+df = df.dropna()
 
-    df = df.dropna(subset=['mpg'])
+X = df[['horsepower']]
+y = df['mpg']
 
-    X = df[['horsepower']]
-    y = df['mpg']
+poly = PolynomialFeatures(degree=4)
 
-    X['horsepower'] = pd.to_numeric(
-        X['horsepower'],
-        errors='coerce'
-    )
+X_poly = poly.fit_transform(X)
 
-    X = X.dropna()
-    y = y.loc[X.index]
+X_train, X_test, y_train, y_test = train_test_split(
+    X_poly, y, test_size=0.2, random_state=42
+)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+model = LinearRegression()
 
-    degree = 4
+model.fit(X_train, y_train)
 
-    poly = PolynomialFeatures(degree)
+y_pred = model.predict(X_test)
 
-    X_train_poly = poly.fit_transform(X_train)
-    X_test_poly = poly.transform(X_test)
+print("\nPolynomial MSE:",
+      mean_squared_error(y_test, y_pred))
 
-    model = LinearRegression()
+print("Polynomial R2:",
+      r2_score(y_test, y_pred))
 
-    model.fit(X_train_poly, y_train)
+# Curve
+x_range = np.linspace(
+    X.min(), X.max(), 100
+).reshape(-1,1)
 
-    y_pred = model.predict(X_test_poly)
+y_range = model.predict(
+    poly.transform(x_range)
+)
 
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
+plt.scatter(X, y)
 
-    print("\nPolynomial Regression MSE:", round(mse,2))
-    print("Polynomial Regression R2:", round(r2,2))
+plt.plot(x_range, y_range)
 
-    # Plot
-    plt.scatter(X['horsepower'], y,
-                color='blue')
+plt.title("Polynomial Regression")
 
-    X_range = np.linspace(
-        X['horsepower'].min(),
-        X['horsepower'].max(),
-        100
-    ).reshape(-1,1)
-
-    y_range = model.predict(
-        poly.transform(X_range)
-    )
-
-    plt.plot(X_range, y_range,
-             color='red')
-
-    plt.xlabel("Horsepower")
-    plt.ylabel("MPG")
-
-    plt.title(f"Polynomial Regression Degree {degree}")
-
-    plt.show()
-
-
-# Function calls
-linear_regression("BostonHousing.csv")
-
-polynomial_regression("auto-mpg.csv")
+plt.show()
 
 #-----
 # Decision Tree
